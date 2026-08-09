@@ -19,7 +19,6 @@ export async function receiveMessage(
 
     const customer = findOrCreateCustomer(phone);
 
-    console.log("CUSTOMER:", customer);
 
     if (customer.firstVisit) {
 
