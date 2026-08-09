@@ -1,24 +1,16 @@
 import express from "express";
-import dotenv from "dotenv";
 import cors from "cors";
-
-dotenv.config();
+import routes from "./routes";
+import { config } from "./config/app";
+import { logger } from "./utils/logger";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
+app.use("/", routes);
 
-app.get("/", (req, res) => {
-  res.json({
-    app: process.env.APP_NAME,
-    status: "Running",
-    message: "🧠 S-BRAIN Backend is Alive!"
-  });
-});
-
-app.listen(PORT, () => {
-  console.log(`🚀 ${process.env.APP_NAME} running on port ${PORT}`);
+app.listen(config.port, () => {
+  logger.info(`${config.appName} started on port ${config.port}`);
 });
