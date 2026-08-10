@@ -1,18 +1,23 @@
 import { Customer, updateCustomer } from "../database/customers";
 import { detectLanguage } from "./language.service";
 
-export function processMessage(
+export async function processMessage(
     customer: Customer,
     message: string
-) {
+): Promise<string> {
+
+    console.log("STEP =", customer.step);
+    console.log("FIRST VISIT =", customer.first_visit);
 
     const text = message.trim();
 
-    // First time customer
-    if (customer.firstVisit) {
+    // First Visit
+    if (customer.first_visit) {
 
-        updateCustomer(customer.phone, {
-            firstVisit: false,
+        console.log("➡️ FIRST VISIT BLOCK");
+
+        await updateCustomer(customer.phone, {
+            first_visit: false,
             step: "name"
         });
 
@@ -23,10 +28,12 @@ May we know your name?
 `;
     }
 
-    // Save customer name
+    // Name Collection
     if (customer.step === "name") {
 
-        updateCustomer(customer.phone, {
+        console.log("➡️ NAME BLOCK");
+
+        await updateCustomer(customer.phone, {
             name: text,
             step: "language"
         });
@@ -41,8 +48,10 @@ Please select your language.
 `;
     }
 
-    // Language selection
+    // Language Selection
     if (customer.step === "language") {
+
+        console.log("➡️ LANGUAGE BLOCK");
 
         const language = detectLanguage(text);
 
@@ -56,7 +65,7 @@ Please select your language.
 `;
         }
 
-        updateCustomer(customer.phone, {
+        await updateCustomer(customer.phone, {
             language,
             step: "menu"
         });
@@ -74,14 +83,99 @@ How can we help you today?
 
 📖 My Passbook
 
-🛍 Browse Sarees
-
 📞 Contact Us
 `;
     }
 
-    // Returning customer
+    // Main Menu
     if (customer.step === "menu") {
+
+        console.log("➡️ MENU BLOCK");
+
+        const msg = text.toLowerCase();
+
+        if (
+            msg.includes("join") ||
+            msg.includes("savings")
+        ) {
+
+            return `
+🪷 Join Savings Scheme
+
+Choose your monthly savings plan.
+
+₹1000
+₹1500
+₹2000
+₹2500
+₹3000
+₹4000
+
+Custom Amount
+`;
+        }
+
+        if (
+            msg.includes("pay") ||
+            msg.includes("installment")
+        ) {
+
+            return `
+💳 Pay Installment
+
+Please select your payment method.
+
+💳 Card
+
+📱 UPI
+
+⚠️ Once paid, the amount cannot be refunded.
+`;
+        }
+
+        if (
+            msg.includes("passbook")
+        ) {
+
+            return `
+📖 My Passbook
+
+Savings details will appear here.
+
+Installments Paid:
+0 / 11
+
+Current Balance:
+₹0
+`;
+        }
+
+        if (
+            msg.includes("contact")
+        ) {
+
+            return `
+📍 Seragu Silk Sarees
+
+🏬 Seragu – The Woven Poetry
+
+📍 Cross,
+Hesaraghatta Road,
+Maheshwari Nagar,
+T. Dasarahalli,
+Bengaluru – 560057
+
+📞 +91 63669 61899
+📞 +91 98457 03260
+
+🕘 9:00 AM – 6:00 PM
+
+📍 View on Google Maps
+
+GSTIN:
+29AJXPG4939N2Z3
+`;
+        }
 
         return `
 🌸 Welcome back, ${customer.name}!
@@ -96,8 +190,6 @@ How can we help you today?
 
 📖 My Passbook
 
-🛍 Browse Sarees
-
 📞 Contact Us
 `;
     }
@@ -109,7 +201,6 @@ Seragu... The Woven Poetry
 ಸೆರಗು... ಒಂದು ನೇಯ್ದ ಕವನ
 
 Please select your language.
-ದಯವಿಟ್ಟು ನಿಮ್ಮ ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ.
 
 🇬🇧 English
 🇮🇳 ಕನ್ನಡ

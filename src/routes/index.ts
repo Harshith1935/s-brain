@@ -14,26 +14,15 @@ router.get("/", (_, res) => {
 });
 
 /**
- * WhatsApp Verification
+ * TEST ROUTE
  */
-router.get("/webhook", (req, res) => {
-  const mode = req.query["hub.mode"];
-  const token = req.query["hub.verify_token"];
-  const challenge = req.query["hub.challenge"];
+router.post("/webhook", (req, res, next) => {
 
-  if (
-    mode === "subscribe" &&
-    token === process.env.WHATSAPP_VERIFY_TOKEN
-  ) {
-    return res.status(200).send(challenge);
-  }
+    console.log("🔥🔥🔥 WEBHOOK HIT 🔥🔥🔥");
+    console.log("BODY =", req.body);
 
-  return res.sendStatus(403);
-});
+    next();
 
-/**
- * WhatsApp Messages
- */
-router.post("/webhook", receiveMessage);
+}, receiveMessage);
 
 export default router;

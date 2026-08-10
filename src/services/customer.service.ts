@@ -5,9 +5,11 @@ import {
     updateCustomer,
 } from "../database/customers";
 
-export function findOrCreateCustomer(phone: string): Customer {
+export async function findOrCreateCustomer(
+    phone: string
+): Promise<Customer> {
 
-    const existing = getCustomer(phone);
+    const existing = await getCustomer(phone);
 
     if (existing) {
         return existing;
@@ -15,25 +17,56 @@ export function findOrCreateCustomer(phone: string): Customer {
 
     const customer: Customer = {
         phone,
-        firstVisit: true,
+        first_visit: true,
+        step: "welcome",
+        installments_paid: 0,
+        current_balance: 0,
     };
 
-    saveCustomer(customer);
+    const savedCustomer = await saveCustomer(customer);
 
-    return customer;
+    return savedCustomer!;
 }
 
-export function markCustomerVisited(phone: string) {
-    updateCustomer(phone, {
-        firstVisit: false,
+export async function markCustomerVisited(
+    phone: string
+) {
+
+    await updateCustomer(phone, {
+        first_visit: false,
     });
+
 }
 
-export function saveLanguage(
+export async function saveLanguage(
     phone: string,
     language: "english" | "kannada"
 ) {
-    updateCustomer(phone, {
+
+    await updateCustomer(phone, {
         language,
     });
+
+}
+
+export async function saveCustomerName(
+    phone: string,
+    name: string
+) {
+
+    await updateCustomer(phone, {
+        name,
+    });
+
+}
+
+export async function updateCustomerStep(
+    phone: string,
+    step: string
+) {
+
+    await updateCustomer(phone, {
+        step,
+    });
+
 }

@@ -1,33 +1,64 @@
+import { supabase } from "../config/supabase";
+
 export interface Customer {
+    id?: string;
     phone: string;
-    firstVisit: boolean;
-    language?: "english" | "kannada";
+    first_visit: boolean;
+    language?: string;
     name?: string;
-    step?: "name" | "language" | "menu";
+    step?: string;
+    scheme_amount?: number;
+    installments_paid?: number;
+    current_balance?: number;
+    next_due_date?: string;
 }
 
-const customers = new Map<string, Customer>();
+export async function getCustomer(
+    phone: string
+): Promise<Customer | null> {
 
-export function getCustomer(phone: string): Customer | undefined {
-    return customers.get(phone);
+    const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .eq("phone", phone)
+        .single();
+
+    if (error) {
+        return null;
+    }
+
+    return data;
 }
 
-export function saveCustomer(customer: Customer): void {
-    customers.set(customer.phone, customer);
+export async function saveCustomer(
+    customer: Customer
+): Promise<Customer | null> {
+
+    const { data, error } = await supabase
+        .from("customers")
+        .insert([customer])
+        .select()
+        .single();
+
+    if (error) {
+        console.error(error);
+        return null;
+    }
+
+    return data;
 }
 
-export function updateCustomer(
+export async function updateCustomer(
     phone: string,
-    data: Partial<Customer>
-): void {
+    updates: Partial<Customer>
+): Promise<void> {
 
-    const customer = customers.get(phone);
+    const { error } = await supabase
+        .from("customers")
+        .update(updates)
+        .eq("phone", phone);
 
-    if (!customer) return;
-
-    customers.set(phone, {
-        ...customer,
-        ...data,
-    });
-
+    if (error) {
+        console.error(error);
+    }
 }

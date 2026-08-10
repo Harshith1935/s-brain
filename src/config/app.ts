@@ -4,7 +4,7 @@ dotenv.config();
 
 export const config = {
   appName: process.env.APP_NAME || "S-BRAIN",
-  port: Number(process.env.PORT) || 3000,
+  port: Number(process.env.PORT) || 5000,
 
   whatsapp: {
     verifyToken: process.env.WHATSAPP_VERIFY_TOKEN || "",
