@@ -87,6 +87,157 @@ How can we help you today?
 `;
     }
 
+    // Scheme Selection
+if (customer.step === "select_scheme") {
+
+    const amount = parseInt(text);
+
+    if (isNaN(amount)) {
+
+        return `
+Please enter a valid amount.
+
+Examples:
+1000
+1500
+2000
+2500
+3000
+4000
+`;
+    }
+
+    await updateCustomer(customer.phone, {
+        pending_scheme_amount: amount,
+        step: "confirm_scheme"
+    });
+
+    const maturityAmount = amount * 12;
+
+    return `
+🌸 Savings Plan Confirmation
+
+Selected Plan:
+₹${amount} / month
+
+Duration:
+12 Months
+
+You Pay:
+11 Installments
+
+Seragu Gift:
+₹${amount}
+
+Maturity Value:
+₹${maturityAmount}
+
+Reply YES to confirm.
+`;
+}
+
+   // Scheme Confirmation
+if (customer.step === "confirm_scheme") {
+
+    const msg = text.toLowerCase();
+
+    if (
+        msg === "yes" ||
+        msg === "y"
+    ) {
+
+        const amount =
+            customer.pending_scheme_amount || 0;
+
+        await updateCustomer(customer.phone, {
+            scheme_amount: amount,
+            scheme_active: true,
+            installments_paid: 0,
+            current_balance: 0,
+            pending_scheme_amount: 0,
+            step: "menu"
+        });
+
+        return `
+✅ Savings Scheme Activated
+
+Monthly Amount:
+₹${amount}
+
+Duration:
+12 Months
+
+You Pay:
+11 Installments
+
+Seragu Gift:
+₹${amount}
+
+Thank you for joining Seragu 🌸
+`;
+    }
+
+    await updateCustomer(customer.phone, {
+        pending_scheme_amount: 0,
+        step: "menu"
+    });
+
+    return `
+Scheme creation cancelled.
+
+🏠 Returning to Main Menu.
+`;
+}
+
+// Pay Installment
+if (customer.step === "pay_installment") {
+
+    console.log("PAY BLOCK HIT 🔥");
+
+    const msg = text.toLowerCase();
+
+    if (msg === "yes" || msg === "y") {
+
+        const installments =
+            (customer.installments_paid || 0) + 1;
+
+        const balance =
+            (customer.current_balance || 0)
+            + (customer.scheme_amount || 0);
+
+        await updateCustomer(customer.phone, {
+            installments_paid: installments,
+            current_balance: balance,
+            step: "menu"
+        });
+
+        return `
+✅ Payment Successful
+
+Amount:
+₹${customer.scheme_amount}
+
+Installments Paid:
+${installments}/11
+
+Current Balance:
+₹${balance}
+
+🏠 Returning to Main Menu
+`;
+    }
+
+    await updateCustomer(customer.phone, {
+        step: "menu"
+    });
+
+    return `
+❌ Payment Cancelled
+
+🏠 Returning to Main Menu
+`;
+}
+
     // Main Menu
     if (customer.step === "menu") {
 
@@ -94,12 +245,28 @@ How can we help you today?
 
         const msg = text.toLowerCase();
 
-        if (
-            msg.includes("join") ||
-            msg.includes("savings")
-        ) {
+    if (
+        msg == "1" ||
+        msg.includes("join") ||
+        msg.includes("scheme") ||
+        msg.includes("savings")
+) {
+    
+    if (customer.scheme_active) {
 
-            return `
+    return `
+✅ You already have an active savings scheme.
+
+📖 View Passbook
+
+💳 Pay Installment
+`;
+}
+    await updateCustomer(customer.phone, {
+        step: "select_scheme"
+    });
+
+    return `
 🪷 Join Savings Scheme
 
 Choose your monthly savings plan.
@@ -113,42 +280,76 @@ Choose your monthly savings plan.
 
 Custom Amount
 `;
-        }
+}
+    if (
+    msg === "2" ||
+    msg.includes("pay") ||
+    msg.includes("installment")
+) {
 
-        if (
-            msg.includes("pay") ||
-            msg.includes("installment")
-        ) {
+    if (!customer.scheme_active) {
 
-            return `
-💳 Pay Installment
+        return `
+❌ No Active Scheme
 
-Please select your payment method.
-
-💳 Card
-
-📱 UPI
-
-⚠️ Once paid, the amount cannot be refunded.
+Please join a savings scheme first.
 `;
-        }
+    }
+
+    await updateCustomer(customer.phone, {
+        step: "pay_installment"
+    });
+
+    return `
+💳 Installment Payment
+
+Monthly Amount:
+₹${customer.scheme_amount}
+
+Reply YES to simulate payment.
+
+Reply NO to cancel.
+`;
+}
 
         if (
-            msg.includes("passbook")
-        ) {
+    msg === "3" ||
+    msg.includes("passbook")
+) {
 
-            return `
+    if (!customer.scheme_active) {
+
+        return `
 📖 My Passbook
 
-Savings details will appear here.
+No active savings scheme found.
 
-Installments Paid:
-0 / 11
-
-Current Balance:
-₹0
+Please join a savings scheme first. 🌸
 `;
-        }
+    }
+
+    return `
+📖 My Passbook
+
+👤 Customer:
+${customer.name}
+
+💰 Monthly Plan:
+₹${customer.scheme_amount ?? 0}
+
+📦 Installments Paid:
+${customer.installments_paid ?? 0} / 11
+
+💵 Current Balance:
+₹${customer.current_balance ?? 0}
+
+⌛ Pending:
+₹${customer.pending_scheme_amount ?? 0}
+
+✅ Status:
+Active
+`;
+}
 
         if (
             msg.includes("contact")

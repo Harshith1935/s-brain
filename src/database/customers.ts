@@ -7,7 +7,12 @@ export interface Customer {
     language?: string;
     name?: string;
     step?: string;
+
     scheme_amount?: number;
+    pending_scheme_amount?: number;
+
+    scheme_active?: boolean;
+
     installments_paid?: number;
     current_balance?: number;
     next_due_date?: string;

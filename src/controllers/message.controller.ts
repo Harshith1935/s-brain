@@ -20,6 +20,9 @@ export async function receiveMessage(
     const customer = await findOrCreateCustomer(
         phone
     );
+    console.log("CUSTOMER STEP =", customer.step);
+    console.log("FIRST VISIT =", customer.first_visit);
+    console.log("MESSAGE =", message);
 
     const reply = await processMessage(
         customer,
