@@ -1,5 +1,6 @@
 import { Customer, updateCustomer } from "../database/customers";
 import { detectLanguage } from "./language.service";
+import { supabase } from "../config/supabase";
 
 export async function processMessage(
     customer: Customer,
@@ -70,20 +71,22 @@ Please select your language.
             step: "menu"
         });
 
-        return `
+   return `
 🌸 Welcome back, ${customer.name}!
 
 How can we help you today?
 
 🏠 Main Menu
 
-🪷 Join Savings Scheme
+1️⃣ Join Savings Scheme
 
-💳 Pay Installment
+2️⃣ Pay Installment
 
-📖 My Passbook
+3️⃣ My Passbook
 
-📞 Contact Us
+4️⃣ Transaction History
+
+5️⃣ Contact Us
 `;
     }
 
@@ -210,6 +213,16 @@ if (customer.step === "pay_installment") {
             current_balance: balance,
             step: "menu"
         });
+
+        await supabase
+    .from("transactions")
+    .insert([
+        {
+            phone: customer.phone,
+            amount: customer.scheme_amount,
+            transaction_type: "INSTALLMENT_PAYMENT"
+        }
+    ]);
 
         return `
 ✅ Payment Successful
@@ -352,6 +365,36 @@ Active
 }
 
         if (
+    msg === "4" ||
+    msg.includes("history")
+) {
+
+    const { data } = await supabase
+        .from("transactions")
+        .select("*")
+        .eq("phone", customer.phone)
+        .order("created_at", { ascending: false });
+
+    if (!data || data.length === 0) {
+        return `
+📜 Transaction History
+
+No transactions found.
+`;
+    }
+
+    let history = "📜 Transaction History\n\n";
+
+    data.forEach((tx, index) => {
+        history += `${index + 1}. ₹${tx.amount}\n`;
+        history += `${new Date(tx.created_at).toLocaleDateString()}\n\n`;
+    });
+
+    return history;
+}
+
+        if (
+            msg === "5" ||
             msg.includes("contact")
         ) {
 
@@ -385,13 +428,15 @@ How can we help you today?
 
 🏠 Main Menu
 
-🪷 Join Savings Scheme
+1️⃣ Join Savings Scheme
 
-💳 Pay Installment
+2️⃣ Pay Installment
 
-📖 My Passbook
+3️⃣ My Passbook
 
-📞 Contact Us
+4️⃣ Transaction History
+
+5️⃣ Contact Us
 `;
     }
 
