@@ -1,54 +1,38 @@
-import { Customer, updateCustomer } from "../database/customers";
-import { detectLanguage } from "./language.service";
-import { supabase } from "../config/supabase";
-import { generateReceipt } from "../pdf/receipt";
-
-export async function processMessage(
-    customer: Customer,
-    message: string
-): Promise<string> {
-
-    const isKannada =
-        customer.language === "kannada";
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.processMessage = processMessage;
+const customers_1 = require("../database/customers");
+const language_service_1 = require("./language.service");
+const supabase_1 = require("../config/supabase");
+async function processMessage(customer, message) {
+    const isKannada = customer.language === "kannada";
     console.log("LANGUAGE =", customer.language);
     console.log("ISKANNADA =", isKannada);
-
     console.log("STEP =", customer.step);
     console.log("FIRST VISIT =", customer.first_visit);
-
     console.log("STEP =", customer.step);
     console.log("FIRST VISIT =", customer.first_visit);
-
     const text = message.trim();
-
     // First Visit
     if (customer.first_visit) {
-
         console.log("➡️ FIRST VISIT BLOCK");
-
-        await updateCustomer(customer.phone, {
+        await (0, customers_1.updateCustomer)(customer.phone, {
             first_visit: false,
             step: "name"
         });
-
         return `
 Welcome to the Seragu family. 🌸
 
 May we know your name?
 `;
     }
-
     // Name Collection
     if (customer.step === "name") {
-
         console.log("➡️ NAME BLOCK");
-
-        await updateCustomer(customer.phone, {
+        await (0, customers_1.updateCustomer)(customer.phone, {
             name: text,
             step: "language"
         });
-
         return `
 Thank you, ${text}. 💛
 
@@ -58,16 +42,11 @@ Please select your language.
 🇮🇳 ಕನ್ನಡ
 `;
     }
-
     // Language Selection
     if (customer.step === "language") {
-
         console.log("➡️ LANGUAGE BLOCK");
-
-        const language = detectLanguage(text);
-
+        const language = (0, language_service_1.detectLanguage)(text);
         if (!language) {
-
             return `
 Please select your language.
 
@@ -75,12 +54,10 @@ Please select your language.
 🇮🇳 ಕನ್ನಡ
 `;
         }
-
-        await updateCustomer(customer.phone, {
+        await (0, customers_1.updateCustomer)(customer.phone, {
             language,
             step: "menu"
         });
-
         return language === "kannada"
             ? `
 🌸 ಮತ್ತೆ ಸ್ವಾಗತ, ${customer.name}!
@@ -117,14 +94,10 @@ How can we help you today?
 5️⃣ Contact Us
 `;
     }
-
     // Scheme Selection
     if (customer.step === "select_scheme") {
-
         const amount = parseInt(text);
-
         if (isNaN(amount)) {
-
             return `
 Please enter a valid amount.
 
@@ -137,16 +110,13 @@ Examples:
 4000
 `;
         }
-
-        await updateCustomer(customer.phone, {
+        await (0, customers_1.updateCustomer)(customer.phone, {
             pending_scheme_amount: amount,
             step: "confirm_scheme"
         });
-
         const maturityAmount = amount * 12;
-
-       return isKannada
-? `
+        return isKannada
+            ? `
 🌸 ಉಳಿತಾಯ ಯೋಜನೆ ದೃಢೀಕರಣ
 
 ಆಯ್ಕೆ ಮಾಡಿದ ಯೋಜನೆ
@@ -166,7 +136,7 @@ Examples:
 
 ದೃಢೀಕರಿಸಲು YES ಎಂದು ಉತ್ತರಿಸಿ.
 `
-: `
+            : `
 🌸 Savings Plan Confirmation
 
 Selected Plan
@@ -187,45 +157,22 @@ Maturity Value
 Reply YES to confirm.
 `;
     }
-
     // Scheme Confirmation
     if (customer.step === "confirm_scheme") {
-
-        const amount =
-            customer.pending_scheme_amount || 0;
         const msg = text.toLowerCase();
-
-        if (
-            msg === "yes" ||
-            msg === "y"
-        ) {
-
-            const startDate = new Date();
-
-const endDate = new Date(startDate);
-
-endDate.setMonth(
-    startDate.getMonth() + 11
-);
-
-await updateCustomer(customer.phone, {
-    scheme_amount: amount,
-    scheme_active: true,
-    installments_paid: 0,
-    current_balance: 0,
-
-    scheme_start_date:
-        startDate.toISOString(),
-
-    scheme_end_date:
-        endDate.toISOString(),
-
-    pending_scheme_amount: 0,
-    step: "menu"
-});
-
-           return isKannada
-? `
+        if (msg === "yes" ||
+            msg === "y") {
+            const amount = customer.pending_scheme_amount || 0;
+            await (0, customers_1.updateCustomer)(customer.phone, {
+                scheme_amount: amount,
+                scheme_active: true,
+                installments_paid: 0,
+                current_balance: 0,
+                pending_scheme_amount: 0,
+                step: "menu"
+            });
+            return isKannada
+                ? `
 ✅ ಉಳಿತಾಯ ಯೋಜನೆ ಸಕ್ರಿಯಗೊಂಡಿದೆ
 
 ಮಾಸಿಕ ಮೊತ್ತ
@@ -242,7 +189,7 @@ await updateCustomer(customer.phone, {
 
 ಸೆರಗಿಗೆ ಸ್ವಾಗತ 🌸
 `
-: `
+                : `
 ✅ Savings Scheme Activated
 
 Monthly Amount
@@ -260,37 +207,25 @@ Seragu Gift
 Thank you for joining Seragu 🌸
 `;
         }
-
-        await updateCustomer(customer.phone, {
+        await (0, customers_1.updateCustomer)(customer.phone, {
             pending_scheme_amount: 0,
             step: "menu"
         });
-
         return `
 Scheme creation cancelled.
 
 🏠 Returning to Main Menu.
 `;
     }
-
     // Pay Installment
     if (customer.step === "pay_installment") {
-
         console.log("PAY BLOCK HIT 🔥");
-
         const msg = text.toLowerCase();
-
         if (msg === "yes" || msg === "y") {
-
-            const installments =
-                (customer.installments_paid || 0) + 1;
-
-            const balance =
-                (customer.current_balance || 0)
+            const installments = (customer.installments_paid || 0) + 1;
+            const balance = (customer.current_balance || 0)
                 + (customer.scheme_amount || 0);
-
             if (installments > 11) {
-
                 return `
 🎉 Savings Scheme Completed
 
@@ -299,123 +234,23 @@ You have already completed all 11 installments.
 Thank you for choosing Seragu 🌸
 `;
             }
-
-await updateCustomer(customer.phone,{
-installments_paid: installments,
-current_balance: balance,
-scheme_active: installments < 11,
-step: "menu"
-});
-
-const { data: existingInstallment } =
-await supabase
-    .from("transactions")
-    .select("id")
-    .eq("phone", customer.phone)
-    .eq("installment_number", installments)
-    .maybeSingle();
-
-if (!existingInstallment) {
-
-    await supabase
-        .from("transactions")
-        .insert([
-            {
-                phone: customer.phone,
-                amount: customer.scheme_amount,
-                transaction_type: "INSTALLMENT_PAYMENT",
-                installment_number: installments
-            }
-        ]);
-}
-
-// GENERATE PDF RECEIPT
-
-const rawSchemeEndDate =
-(customer as Customer & {
-  scheme_end_date?: string;
-}).scheme_end_date;
-
-const schemeEndDate =
-rawSchemeEndDate
-  ? new Date(rawSchemeEndDate).toLocaleString(
-      "en-IN",
-      {
-        month: "long",
-        year: "numeric",
-      }
-    )
-  : "Not Available";
-
-const schemeEndMonth =
-  new Date(schemeEndDate).toLocaleString("en-IN", {
-    month: "long",
-    year: "numeric"
-  });
-
-console.log(
-  "SCHEME END DATE =>",
-  customer.scheme_end_date
-);
-
-const totalSchemeAmount =
-(customer.scheme_amount || 0) * 12;
-
-const remainingAmount =
-totalSchemeAmount - balance;
-
-const receiptUrl =
-await generateReceipt({
-
-  customerName:
-  customer.name ?? "Customer",
-
-  phone:
-  customer.phone ?? "",
-
-  amountPaid:
-  customer.scheme_amount ?? 0,
-
-  totalAmount:
-  totalSchemeAmount,
-
-  totalSchemeAmount:
-  totalSchemeAmount,
-
-  balanceAmount:
-  remainingAmount,
-
-  receiptNumber:
-  `SRG-${Date.now()}`,
-
-  date:
-  new Date().toISOString(),
-
-  paymentMonth:
-  new Date().toLocaleString(
-    "en-IN",
-    {
-      month: "long",
-      year: "numeric",
-    }
-  ),
-
-  installmentNumber:
-  `${installments}/11`,
-
-  paymentMethod:
-  "BANK TRANSFER",
-
-  transactionId:
-  `TXN-${Date.now()}`,
-
-  schemeEndDate:
-  schemeEndDate,
-});
-
-if (installments === 11) {
-
-    return `
+            await (0, customers_1.updateCustomer)(customer.phone, {
+                installments_paid: installments,
+                current_balance: balance,
+                scheme_active: installments < 11,
+                step: "menu"
+            });
+            await supabase_1.supabase
+                .from("transactions")
+                .insert([
+                {
+                    phone: customer.phone,
+                    amount: customer.scheme_amount,
+                    transaction_type: "INSTALLMENT_PAYMENT"
+                }
+            ]);
+            if (installments === 11) {
+                return `
 🎉 SAVINGS SCHEME COMPLETED
 
 ━━━━━━━━━━━━━━
@@ -442,31 +277,21 @@ to redeem your benefit.
 
 The Woven Poetry 🪷
 `;
-}
-
-return isKannada
-? `
+            }
+            return isKannada
+                ? `
 ✅ ಪಾವತಿ ಯಶಸ್ವಿಯಾಗಿದೆ
 
-━━━━━━━━━━━━━━
-
-💰 ಮೊತ್ತ:
+ಮೊತ್ತ
 ₹${customer.scheme_amount}
 
-📦 ಪಾವತಿಸಿದ ಕಂತುಗಳು:
+ಪಾವತಿಸಿದ ಕಂತುಗಳು
 ${installments}/11
 
-💵 ಪ್ರಸ್ತುತ ಶೇಷ:
+ಪ್ರಸ್ತುತ ಶೇಷ
 ₹${balance}
-
-━━━━━━━━━━━━━━
-
-📄 ರಸೀದಿ:
-${receiptUrl}
-
-🌸 Seragu ಜೊತೆ ಉಳಿತಾಯ ಮಾಡಿದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು.
 `
-: `
+                : `
 ✅ Payment Successful
 
 Amount:
@@ -477,42 +302,26 @@ ${installments}/11
 
 Current Balance:
 ₹${balance}
-
-📄 Receipt:
-${receiptUrl}
 `;
         }
-
-        await updateCustomer(customer.phone, {
+        await (0, customers_1.updateCustomer)(customer.phone, {
             step: "menu"
         });
-
         return `
 ❌ Payment Cancelled
 
 🏠 Returning to Main Menu
 `;
     }
-
     // Main Menu
     if (customer.step === "menu") {
-
         console.log("➡️ MENU BLOCK");
-
         const msg = text.toLowerCase();
-
-        console.log("RAW TEXT =", text);
-        console.log("MSG =", msg);
-        console.log("CUSTOMER STEP =", customer.step);
-
-        if (
-            msg == "1" ||
+        if (msg == "1" ||
             msg.includes("join") ||
             msg.includes("scheme") ||
-            msg.includes("savings")
-        ) {
+            msg.includes("savings")) {
             if (customer.scheme_active) {
-
                 return isKannada
                     ? `
 ✅ ನೀವು ಈಗಾಗಲೇ ಸಕ್ರಿಯ ಉಳಿತಾಯ ಯೋಜನೆಯನ್ನು ಹೊಂದಿದ್ದೀರಿ.
@@ -529,12 +338,11 @@ ${receiptUrl}
 💳 Pay Installment
 `;
             }
-            await updateCustomer(customer.phone, {
-    step: "select_scheme"
-});
-
-return isKannada
-? `
+            await (0, customers_1.updateCustomer)(customer.phone, {
+                step: "select_scheme"
+            });
+            return isKannada
+                ? `
 🪷 ಉಳಿತಾಯ ಯೋಜನೆಗೆ ಸೇರಿ
 
 ನಿಮ್ಮ ಮಾಸಿಕ ಉಳಿತಾಯ ಯೋಜನೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ.
@@ -546,7 +354,7 @@ return isKannada
 ₹3000
 ₹4000
 `
-: `
+                : `
 🪷 Join Savings Scheme
 
 Choose your monthly savings plan.
@@ -558,29 +366,22 @@ Choose your monthly savings plan.
 ₹3000
 ₹4000
 `;
-}
-
-            if (
-                msg === "2" ||
-                msg.includes("pay") ||
-                msg.includes("installment")
-            ) {
-
-                if (!customer.scheme_active) {
-
-                    return `
+        }
+        if (msg === "2" ||
+            msg.includes("pay") ||
+            msg.includes("installment")) {
+            if (!customer.scheme_active) {
+                return `
 ❌ No Active Scheme
 
 Please join a savings scheme first.
 `;
-                }
-
-                await updateCustomer(customer.phone, {
-                    step: "pay_installment"
-                });
-
-                return isKannada
-? `
+            }
+            await (0, customers_1.updateCustomer)(customer.phone, {
+                step: "pay_installment"
+            });
+            return isKannada
+                ? `
 💳 ಕಂತು ಪಾವತಿ
 
 ಮಾಸಿಕ ಮೊತ್ತ
@@ -588,7 +389,7 @@ Please join a savings scheme first.
 
 YES ಎಂದು ಉತ್ತರಿಸಿ.
 `
-: `
+                : `
 💳 Installment Payment
 
 Monthly Amount:
@@ -596,38 +397,30 @@ Monthly Amount:
 
 Reply YES to simulate payment.
 `;
-            }
-
-            if (
-                msg === "3" ||
-                msg.includes("passbook")
-            ) {
-
-                if (!customer.scheme_active) {
-
-                    return isKannada
-                        ? `
+        }
+        if (msg === "3" ||
+            msg.includes("passbook")) {
+            if (!customer.scheme_active) {
+                return isKannada
+                    ? `
 📖 ಸೆರಗು ಪಾಸ್‌ಬುಕ್
 
 ❌ ಯಾವುದೇ ಸಕ್ರಿಯ ಉಳಿತಾಯ ಯೋಜನೆ ಇಲ್ಲ.
 
 ದಯವಿಟ್ಟು ಮೊದಲು ಯೋಜನೆಗೆ ಸೇರಿ.
 `
-                        : `
+                    : `
 📖 SERAGU PASSBOOK
 
 ❌ No Active Savings Scheme
 
 Please join a savings scheme first.
 `;
-                }
-
-                const remaining =
-                    (11 - (customer.installments_paid ?? 0))
-                    * (customer.scheme_amount ?? 0);
-
-                return isKannada
-                    ? `
+            }
+            const remaining = (11 - (customer.installments_paid ?? 0))
+                * (customer.scheme_amount ?? 0);
+            return isKannada
+                ? `
 📖 ಸೆರಗು ಪಾಸ್‌ಬುಕ್
 
 👤 ಗ್ರಾಹಕರ ಹೆಸರು
@@ -650,7 +443,7 @@ ${customer.installments_paid ?? 0}/11
 
 🌸 ಸೆರಗು ಉಳಿತಾಯ ಯೋಜನೆ
 `
-                    : `
+                : `
 📖 SERAGU PASSBOOK
 
 👤 Customer Name
@@ -674,46 +467,37 @@ ACTIVE 🟢
 🌸 Seragu Savings Scheme
 The Woven Poetry
 `;
-            } 
-
-            if (
-                msg === "4" ||
-                msg.includes("history")
-            ) {
-
-                const { data } = await supabase
-    .from("transactions")
-    .select("*")
-    .eq("phone", customer.phone)
-    .eq("transaction_type", "INSTALLMENT_PAYMENT")
-    .order("created_at", { ascending: false });
-
-    console.log("TRANSACTION COUNT:", data?.length);
-
-                if (!data || data.length === 0) {
-                   return isKannada
-? `
+        }
+        if (msg === "4" ||
+            msg.includes("history")) {
+            const { data } = await supabase_1.supabase
+                .from("transactions")
+                .select("*")
+                .eq("phone", customer.phone)
+                .order("created_at", { ascending: false });
+            if (!data || data.length === 0) {
+                return isKannada
+                    ? `
 📜 ಸೆರಗು ವ್ಯವಹಾರ ಇತಿಹಾಸ
 
 ಯಾವುದೇ ವ್ಯವಹಾರಗಳು ಕಂಡುಬಂದಿಲ್ಲ.
 `
-: `
+                    : `
 📜 Transaction History
 
 No transactions found.
 `;
-                }
-
-                let history = isKannada
-? `
-📜 ಸೆರಗು ಪಾವತಿ ಇತಿಹಾಸ
+            }
+            let history = isKannada
+                ? `
+📜 ಸೆರಗು ವ್ಯವಹಾರ ಇತಿಹಾಸ
 
 📦 ಪಾವತಿಸಿದ ಕಂತುಗಳು
 ${customer.installments_paid ?? 0}/11
 
 ━━━━━━━━━━━━━━
 `
-: `
+                : `
 📜 SERAGU TRANSACTION HISTORY
 
 📦 Total Installments Paid
@@ -721,32 +505,30 @@ ${customer.installments_paid ?? 0}/11
 
 ━━━━━━━━━━━━━━
 `;
-
-const validTransactions = data ?? [];
-
-validTransactions.forEach(
-    (tx: any, index: number) => {
-
-    const installmentLabel =
-isKannada
-? "ಕಂತು"
-: "Installment";
-
-history += `
-💳 ${installmentLabel} #${index + 1}
+            const validTransactions = data ?? [];
+            validTransactions.forEach((tx, index) => {
+                history += isKannada
+                    ? `
+💳 ಕಂತು #${index + 1}
 
 ₹${tx.amount}
 
-📅 ${new Date(
-    tx.created_at
-).toLocaleDateString("en-GB")}
+📅 ${new Date(tx.created_at).toLocaleDateString("en-GB")}
+
+━━━━━━━━━━━━━━
+`
+                    : `
+💳 Installment #${index + 1}
+
+₹${tx.amount}
+
+📅 ${new Date(tx.created_at).toLocaleDateString("en-GB")}
 
 ━━━━━━━━━━━━━━
 `;
-    });
-
-history += isKannada
-? `
+            });
+            history += isKannada
+                ? `
 💰 ಪ್ರಸ್ತುತ ಶೇಷ
 ₹${customer.current_balance ?? 0}
 
@@ -755,7 +537,7 @@ ${11 - (customer.installments_paid ?? 0)}
 
 🌸 ಸೆರಗು ಆಯ್ಕೆ ಮಾಡಿದಕ್ಕಾಗಿ ಧನ್ಯವಾದಗಳು
 `
-: `
+                : `
 💰 Current Balance
 ₹${customer.current_balance ?? 0}
 
@@ -764,16 +546,11 @@ ${11 - (customer.installments_paid ?? 0)}
 
 🌸 Thank you for choosing Seragu
 `;
-
-return history;
-            }
-
-            if (
-                msg === "5" ||
-                msg.includes("contact")
-            ) {
-
-                return `
+            return history;
+        }
+        if (msg === "5" ||
+            msg.includes("contact")) {
+            return `
 📍 SERAGU SILK SAREES
 🌸 The Woven Poetry
 
@@ -799,10 +576,9 @@ https://maps.app.goo.gl/vRw3hjE7hbzheYZv8
 
 💌 Thank you for choosing Seragu
 `;
-            }
-
-            return isKannada
-                ? `
+        }
+        return isKannada
+            ? `
 🌸 ಮತ್ತೆ ಸ್ವಾಗತ, ${customer.name}!
 
 ನಾವು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?
@@ -819,7 +595,7 @@ https://maps.app.goo.gl/vRw3hjE7hbzheYZv8
 
 5️⃣ ಸಂಪರ್ಕಿಸಿ
 `
-                : `
+            : `
 🌸 Welcome back, ${customer.name}!
 
 How can we help you today?
@@ -836,9 +612,8 @@ How can we help you today?
 
 5️⃣ Contact Us
 `;
-        }
-
-        return `
+    }
+    return `
 🌸 ನಮಸ್ಕಾರ | Welcome
 
 Seragu... The Woven Poetry
@@ -849,4 +624,5 @@ Please select your language.
 🇬🇧 English
 🇮🇳 ಕನ್ನಡ
 `;
-    }
+}
+//# sourceMappingURL=conversation.service.js.map

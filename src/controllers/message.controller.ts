@@ -13,9 +13,11 @@ export async function receiveMessage(
     res: Response
 ) {
 
-    const phone = "6366961899";
-
+    const phone = req.body.from;
     const message = req.body.message;
+
+    console.log("BODY =", req.body);
+    console.log("PHONE =", req.body.from);
 
     const customer = await findOrCreateCustomer(
         phone

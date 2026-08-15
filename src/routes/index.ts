@@ -20,6 +20,8 @@ router.post("/webhook", (req, res, next) => {
 
     console.log("🔥🔥🔥 WEBHOOK HIT 🔥🔥🔥");
     console.log("BODY =", req.body);
+    console.log("FROM =", req.body.from);
+    console.log("MESSAGE =", req.body.message);
 
     next();
 
